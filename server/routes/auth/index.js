@@ -1,6 +1,11 @@
 const router = require("express").Router();
 const { User } = require("../../db/models");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+
+function createCSRFToken() {
+  return crypto.randomBytes(48).toString('hex');
+}
 
 router.post("/register", async (req, res, next) => {
   try {
@@ -21,14 +26,20 @@ router.post("/register", async (req, res, next) => {
 
     const user = await User.create(req.body);
 
+    const csrf = createCSRFToken();
     const token = jwt.sign(
-      { id: user.dataValues.id },
+      { id: user.dataValues.id, csrf },
       process.env.SESSION_SECRET,
       { expiresIn: 86400 }
     );
+    res.cookie("token", token, {
+      httpOnly: true,
+      maxAge: 86400,
+      secure: process.env.NODE_ENV === "production",
+    });
     res.json({
       ...user.dataValues,
-      token,
+      csrf,
     });
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
@@ -59,14 +70,20 @@ router.post("/login", async (req, res, next) => {
       console.log({ error: "Wrong username and/or password" });
       res.status(401).json({ error: "Wrong username and/or password" });
     } else {
+      const csrf = createCSRFToken();
       const token = jwt.sign(
-        { id: user.dataValues.id },
+        { id: user.dataValues.id, csrf },
         process.env.SESSION_SECRET,
         { expiresIn: 86400 }
       );
+      res.cookie("token", token, {
+        httpOnly: true,
+        maxAge: 86400,
+        secure: process.env.NODE_ENV === "production",
+      });
       res.json({
         ...user.dataValues,
-        token,
+        csrf,
       });
     }
   } catch (error) {
@@ -75,6 +92,10 @@ router.post("/login", async (req, res, next) => {
 });
 
 router.delete("/logout", (req, res, next) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  });
   res.sendStatus(204);
 });
 
