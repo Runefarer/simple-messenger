@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { Conversation, Message } = require("../../db/models");
+const { Op } = require("sequelize");
 const onlineUsers = require("../../onlineUsers");
 
 // expects {recipientId, text, conversationId } in body (conversationId will be null if no conversation exists yet)
@@ -13,6 +14,27 @@ router.post("/", async (req, res, next) => {
 
     // if we already know conversation id, we can save time and just add it to message and return
     if (conversationId) {
+      // we check if sender is actually a part of this conversation
+      const isValid = await Conversation.count({
+        where: {
+          [Op.and]: [
+            {
+              id: conversationId
+            },
+            {
+              [Op.or]: {
+                user1Id: senderId,
+                user2Id: senderId,
+              },
+            }
+          ],
+        },
+      }).then(count => count !== 0);
+      // if sender is not a part of this conversation, respond with error
+      if (!isValid) {
+        return res.sendStatus(403);
+      }
+
       const message = await Message.create({ senderId, text, conversationId });
       return res.json({ message, sender });
     }
