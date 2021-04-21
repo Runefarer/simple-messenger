@@ -32,6 +32,7 @@ router.post("/register", async (req, res, next) => {
       process.env.SESSION_SECRET,
       { expiresIn: 86400 }
     );
+    req.session.token = token;
     res.cookie("token", token, {
       httpOnly: true,
       maxAge: 86400,
@@ -76,6 +77,7 @@ router.post("/login", async (req, res, next) => {
         process.env.SESSION_SECRET,
         { expiresIn: 86400 }
       );
+      req.session.token = token;
       res.cookie("token", token, {
         httpOnly: true,
         maxAge: 86400,
@@ -92,6 +94,7 @@ router.post("/login", async (req, res, next) => {
 });
 
 router.delete("/logout", (req, res, next) => {
+  delete req.session.token;
   res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

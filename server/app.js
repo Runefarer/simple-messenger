@@ -4,25 +4,32 @@ const { join } = require("path");
 const logger = require("morgan");
 const jwt = require("jsonwebtoken");
 const session = require("express-session");
-const cookieParser = require("cookie-parser");
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
 const db = require("./db");
 const { User } = require("./db/models");
 // create store for sessions to persist in database
 const sessionStore = new SequelizeStore({ db });
+// create app session middleware to use session store
+const appSession = session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: true,
+  store: sessionStore,
+  cookie: { httpOnly: true },
+});
 
 const { json, urlencoded } = express;
 
 const app = express();
 
-app.use(cookieParser());
+app.use(appSession);
 app.use(logger("dev"));
 app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(express.static(join(__dirname, "public")));
 
 app.use(function (req, res, next) {
-  const token = req.cookies?.token;
+  const token = req.session?.token;
   if (token) {
     jwt.verify(token, process.env.SESSION_SECRET, (err, decoded) => {
       if (err) {
@@ -64,4 +71,4 @@ app.use(function (err, req, res, next) {
   res.json({ error: err });
 });
 
-module.exports = { app, sessionStore };
+module.exports = { app, appSession, sessionStore };
