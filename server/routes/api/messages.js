@@ -55,4 +55,29 @@ router.post("/", async (req, res, next) => {
   }
 });
 
+// expects { conversationId } in body
+router.post("/read", async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.sendStatus(401);
+    }
+    const recipientId = req.user.id;
+    const { conversationId } = req.body;
+
+    await Message.update({ read: true }, {
+      where: {
+        conversationId,
+        read: false,
+        senderId: {
+          [Op.not]: recipientId,
+        },
+      },
+    });
+
+    res.sendStatus(200);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
