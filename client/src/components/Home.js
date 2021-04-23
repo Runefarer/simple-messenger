@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
-import { Redirect } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 import { connect } from "react-redux";
 import { Grid, CssBaseline, Button } from "@material-ui/core";
 import { SidebarContainer } from "./Sidebar";
@@ -19,6 +19,7 @@ const useStyles = makeStyles(() => ({
 
 const Home = (props) => {
   const classes = useStyles();
+  const history = useHistory();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { user, fetchConversations, logout } = props;
   
@@ -28,19 +29,13 @@ const Home = (props) => {
 
   useEffect(() => {
     if (user?.id) {
+      fetchConversations();
       setIsLoggedIn(true);
+    } else {
+      // If we were previously logged in, redirect to login instead of register
+      history.replace(isLoggedIn ? "/login" : "/register");
     }
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
-
-  if (!user?.id) {
-    // If we were previously logged in, redirect to login instead of register
-    if (isLoggedIn) return <Redirect to="/login" />;
-    return <Redirect to="/register" />;
-  }
+  }, [user?.id, isLoggedIn, fetchConversations, history]);
 
   return (
     <>

@@ -8,6 +8,12 @@ import {
 } from "../conversations";
 import { gotUser, setFetchingStatus } from "../user";
 
+function handleApiError(error, dispatch) {
+  if (error.response.status === 401) {
+    dispatch(gotUser({ error: "Login needed" }));
+  }
+}
+
 axios.interceptors.request.use(async function (config) {
   const token = await localStorage.getItem("csrf-token");
   config.headers["x-csrf-token"] = token;
@@ -76,6 +82,7 @@ export const fetchConversations = () => async (dispatch) => {
     dispatch(gotConversations(data));
   } catch (error) {
     console.error(error);
+    handleApiError(error, dispatch);
   }
 };
 
@@ -107,6 +114,7 @@ export const postMessage = (body) => async (dispatch) => {
     sendMessage(data, body);
   } catch (error) {
     console.error(error);
+    handleApiError(error, dispatch);
   }
 };
 
@@ -116,5 +124,6 @@ export const searchUsers = (searchTerm) => async (dispatch) => {
     dispatch(setSearchedUsers(data));
   } catch (error) {
     console.error(error);
+    handleApiError(error, dispatch);
   }
 };
